@@ -20,6 +20,29 @@ void error(const char *msg)
     exit(1);
 }
 
+long int findSize(char file_name[]) 
+{ 
+    // opening the file in read mode 
+    FILE* fp = fopen(file_name, "r"); 
+  
+    // checking if the file exist or not 
+    if (fp == NULL) { 
+        printf("File Not Found!\n"); 
+        return -1; 
+    } 
+  
+    fseek(fp, 0L, SEEK_END); 
+  
+    // calculating the size of the file 
+    long int res = ftell(fp); 
+  
+    // closing the file 
+    rewind(fp);
+    fclose(fp); 
+  
+    return res; 
+} 
+
 int main(int argc , char *argv[])
 {
     if(argc < 3) 
@@ -49,27 +72,28 @@ int main(int argc , char *argv[])
     serv_addr.sin_port = htons(port_no);
     if(connect(sockfd,(struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) error("Connection failed");
 
-    FILE *f;
-    int words = 0;
-    char c;
-    f = fopen("file.txt","r");
-    while((c = getc(f))!=EOF)
-    {
-        fscanf(f,"%s",buffer);
-        if(isspace(c) || c=='\t') words ++;
-    }
-    write(sockfd,&words,sizeof(int));
-    rewind(f);
+    FILE *file_pointer;
 
-    char ch;
-    while(ch != EOF)
+    char file_name[] = { "file.txt" }; 
+    long int size = findSize(file_name); 
+
+    file_pointer = fopen("file.txt","rb");
+
+    write(sockfd,&size,sizeof(long int));
+    rewind(file_pointer);
+
+    while(size)
     {
-        fscanf(f,"%s",buffer);
-        write(sockfd,buffer,255);
-        ch = fgetc(f);
+        bzero(buffer,255);
+        int read = 0;
+        if (size > 255) {read = 255; size-=255;}
+        else {read = size-1; size = 0;}
+        fread(buffer,read,1,file_pointer);
+        write(sockfd,&buffer,read);
+        
     }
 
-    fclose(f);
+    fclose(file_pointer);
     close(sockfd);
 
     return 0;

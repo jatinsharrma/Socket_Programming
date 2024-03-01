@@ -33,7 +33,7 @@ int main(int argc , char *argv[])
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(port_no); // host to network short
+    serv_addr.sin_port = htons(port_no); // htons function takes a 16-bit number in host byte order and returns a 16-bit number in network byte order used in TCP/IP networks
 
     if(bind(sockfd,(struct sockaddr *) &serv_addr , sizeof(serv_addr)) < 0)
         error("Binding error!");
@@ -47,23 +47,25 @@ int main(int argc , char *argv[])
 
     FILE *fp;
 
-    int ch = 0;
+    fp = fopen("receive.txt","wb");
 
-    fp = fopen("receive.txt","a");
-
-    int words;
+    int size;
     
-    read(newsockfd,&words,sizeof(int));
-
-    while(ch != words)
+    read(newsockfd,&size,sizeof(int));
+    printf("%d",size);
+    while(size>0)
     {
+        bzero(buffer,255);
+
+        int write = 0;
         read(newsockfd,buffer,255);
-        fprintf(fp,"%s ",buffer);
-        ch++;
+        if(size > 255 ){write=255; size-= 255;}
+        else {write = size+3; size=0;}
+        fwrite(buffer,write,1,fp);
     }
 
     close(newsockfd);
     close(sockfd);
-
+    fclose(fp);
     return 0;
 }
